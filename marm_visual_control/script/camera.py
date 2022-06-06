@@ -23,6 +23,9 @@ with open(config_path, "r") as f:
 
 this.color_param=config['color_param']
 this.bin_param=config['bin_param']
+this.err=config['err']
+this.err_a=config['err_a']
+this.err_times=config['err_times']
 
 class AiCamera(object):
     def __init__(self,color,win=[],loc_plate=[141,192,465,386],loc_plate_act=[0.147,0.173,0.092],
@@ -237,8 +240,10 @@ class AiCamera(object):
                 continue
             point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板,误差0.03(参数)
             if point!=None:
-                if self.__check(point[0][0],__la_pos[-1][0][0])==True and self.__check(point[0][1],__la_pos[-1][0][1])==True \
-                and self.__check(point[1][0],__la_pos[-1][1][0])==True and self.__check(point[1][1],__la_pos[-1][1][1])==True  :
+                if self.__check(point[0][0],__la_pos[-1][0][0],this.err,this.err_a)==True and \
+                self.__check(point[0][1],__la_pos[-1][0][1],this.err,this.err_a)==True and \
+                self.__check(point[1][0],__la_pos[-1][1][0],this.err,this.err_a)==True and \
+                self.__check(point[1][1],__la_pos[-1][1][1],this.err,this.err_a)==True :
                     __la_pos.append(point)
                 else:
                     __la_pos = [point]
@@ -311,6 +316,7 @@ class AiCamera(object):
                 __la_pos=[] 
                 color_loc_times=config['color_loc_times']       # 参数:重复检测次数
                 success_idx=[]
+                err_num=0
                 def clear():        # 清理该颜色所有的检测结果
                     for i in range(len(__la_pos)):
                         __la_pos[i]=[]
@@ -320,10 +326,8 @@ class AiCamera(object):
                         continue
                     # print(__la_pos)
                     pos=self.rec_cla_dict[color]["class"].find_pos(self.frame)  #[[同色物块1][同色物块2][同色物块3][同色物块4]....]
-                    if pos!=None:
-                        if len(__la_pos)!=len(pos):     
-                            clear()
-                            return -1,__la_pos          # 初次探测和检测数量不一致
+                    if pos!=None and len(__la_pos)==len(pos):
+                        err_num=0
                         for i in range(len(pos)):
                             if i in success_idx:                        #满足要求的不再继续采集
                                 continue
@@ -334,15 +338,27 @@ class AiCamera(object):
                                 if pos[i][0]<self.point2[0] and pos[i][0]>self.point1[0] and \
                                 pos[i][1]< self.point2[1] and pos[i][1]> self.point1[1]:
                                     if __la_pos[i]:
-                                        if self.__check(pos[i][0],__la_pos[i][-1][0])==True and self.__check(pos[i][1],__la_pos[i][-1][1])==True \
-                                        and self.__check(pos[i][2],__la_pos[i][-1][2])==True :
+                                        if self.__check(pos[i][0],__la_pos[i][-1][0],this.err,this.err_a)==True and \
+                                        self.__check(pos[i][1],__la_pos[i][-1][1],this.err,this.err_a)==True and \
+                                        self.__check(pos[i][2],__la_pos[i][-1][2],this.err,this.err_a)==True :
                                             __la_pos[i].append(pos[i])      #[[] [[同色物块2][同色物块2]] [[同色物块3]] [[同色物块4]]....]
                                         else:
                                             __la_pos[i] = [pos[i]]          #重新取数据
                                 else:
                                     __la_pos[i]=[]      # 超出范围
                             else:
+                                print("error! no anchor point")
                                 return -1,__la_pos      # 没有定位点 
+                    else:
+                        if len(__la_pos)!=len(pos):     # 颜色参数不稳定导致错误，建议调整颜色参数使物体框稳定
+                            if err_num<this.err_times:
+                                err_num+=1
+                                print("error! Length of __la_pos and pos is inconsistent! retry!") 
+                                print('__la_pos:%s length:%d'%(__la_pos,len(__la_pos)))
+                                print('pos:%s length:%d'%(pos,len(pos)))
+                            else:
+                                clear()
+                                return -1,__la_pos          # 初次探测和检测数量不一致   
                     def check():                        # 将没有采集完全的木块数据全部清除
                         for i in range(len(pos)):
                             if i not in success_idx:
@@ -354,17 +370,18 @@ class AiCamera(object):
                     if time.time()-st_time>config['color_loc_time']:
                         if len(success_idx)==0:
                             clear()
+                            print("error! color_det_ex timed out")
                             return -1,__la_pos          # 定位超时     
                         check()
                         return 0,__la_pos               # 返回有效检测的一部分
             color_det_ex_st=time.time()
             sta,la_pos=color_det_ex(i,pos,num,color_det_ex_st)
             color_det_ex_use_time=time.time()-color_det_ex_st
-            # print("finaly",sta,la_pos)
             # [[[同色物块1], [同色物块1], [同色物块1], [同色物块1], [同色物块1]]])
             if sta==0:                              #定位木块成功
                 #[[同色物块1,同色物块1,同色物块1..] [同色物块2,同色物块2..] [同色物块3,同色物块3..] ....]
-                print("%s Block positioning succeeded! det use time: %.2f loc use time: %.2f"%(i,color_det_use_time,color_det_ex_use_time))
+                print("%s Block positioning succeeded! data:%s "%(i,la_pos))
+                print('det use time: %.2f loc use time: %.2f'%(color_det_use_time,color_det_ex_use_time))
                 data=[]
                 for m in la_pos:
                     if m:

@@ -61,7 +61,7 @@ place_yellow_pos=[-1.4663658780420075, 0.12841546305913984, 1.742980531732989, 0
 def quit(signum, frame):
     print('EXIT APP') 
     sys.exit()
-    rospy.signal_shutdown("arm is stopping")            #发出机械臂停止运动信号
+    # rospy.signal_shutdown("arm is stopping")            #发出机械臂停止运动信号
 
 from arm import Arm
 from camera import AiCamera

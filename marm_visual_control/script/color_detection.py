@@ -260,4 +260,4 @@ if __name__ == '__main__':
         if ret == False:            # 读取帧失败
             break
         pos=color_det.find_pos(img)
-        print(color,pos)
+        print(color,pos,len(pos))
