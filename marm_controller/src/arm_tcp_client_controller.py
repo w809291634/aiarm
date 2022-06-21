@@ -11,6 +11,7 @@ import socket
 import time
 import yaml
 import sys
+from marm_controller.srv import *
 this = sys.modules[__name__]
 
 this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
@@ -64,10 +65,16 @@ def response():
 
 def gripper_control(data):
     mutex.acquire()
-    client_senddata(1,data.data) 
-    response()
-    rospy.logwarn("gripper go success!")
-    mutex.release()
+    client_senddata(1,data.data)                            # 发送控制数据
+    code=response()                                         # 获取请求结果
+    if code==2:
+        rospy.logwarn("gripper go success!")
+        mutex.release()
+        return gripperResponse(gripperResponse.SUCCESS)     # 返回夹具控制成功
+    else:
+        rospy.logerr("gripper go fail!")
+        mutex.release()
+        return gripperResponse(gripperResponse.ERROR)
 
 class JointTrajectoryActionServer(object):
     # create messages that are used to publish feedback/result
@@ -75,7 +82,7 @@ class JointTrajectoryActionServer(object):
 
     def __init__(self, name):
         self._action_name = name
-        # self.ctlPub = rospy.Publisher('/xcar/arm', Int16MultiArray, queue_size=0, latch=True)
+        # self.ctlPub = rospy.Publisher('/xcar/arm', Int16MultiArray, queue_size=0, latch=True)    
         self.jstPub = rospy.Publisher('/xcar/arm_joint_states', JointState, queue_size=0, latch=True)
         self._as = SimpleActionServer(self._action_name, FollowJointTrajectoryAction,  
                                                 execute_cb=self.execute_cb_ex, auto_start=False)  
@@ -162,7 +169,7 @@ if __name__ == '__main__':
     client.settimeout(15)                    #收发数据超时时间等等
     print("xcar server connect ok")
     server = JointTrajectoryActionServer("arm_controller/follow_joint_trajectory")   
-    rospy.Subscriber('/arm_controller/follow_joint_trajectory/cancel',GoalID,cmdfu)    #订阅控制板命令,实现机械臂紧急停止
-    rospy.Subscriber('/arm_controller/gripper',Int16,gripper_control)    #订阅控制板命令,实现机械臂紧急停止
+    rospy.Subscriber('/arm_controller/follow_joint_trajectory/cancel',GoalID,cmdfu)         # 订阅控制板命令,实现机械臂紧急停止
+    service_gripper = rospy.Service('/arm_controller/gripper', gripper, gripper_control)    # 建立服务 等待客户端进行连接
     rospy.spin()
 

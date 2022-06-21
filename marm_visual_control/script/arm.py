@@ -16,6 +16,7 @@ this = sys.modules[__name__]
 import sys   
 import signal
 from marm_visual_inspection.srv import GenerateSolutions
+from marm_controller.srv import *
 #机械臂调试
 arm_debug=False #True False
 
@@ -38,12 +39,18 @@ def quit(signum, frame):
 this.arm_joint=[]
 this.arm_res=0
 class Arm(object):
-    def __init__(self,g_open,xarm="varm",gripper=True):
+    def __init__(self,g_open,xarm="varm",gripper_ty=True):
         self.arm = MoveGroupCommander("manipulator")
         self.xarm=xarm
         if self.xarm=="varm":
-            self.gripper = rospy.Publisher('/arm_controller/gripper', Int16, queue_size=0) 
-        else:
+            try:
+                rospy.wait_for_service('/arm_controller/gripper',timeout=5)
+            except (rospy.ServiceException, rospy.ROSException ,Exception) as e:
+                print(e)
+                sys.exit()
+            self.gripper  = rospy.ServiceProxy('/arm_controller/gripper', gripper)
+
+        elif self.xarm=="xarm":
             self.gripper = rospy.Publisher('/xcar/gripper', Int32, queue_size=0, latch=True)
             self.arm_status_pub=rospy.Publisher('/xcar/arm_status_req', Int32, queue_size=0, latch=True)
             def __arm_joint(msg):           #用于查询机械臂的关节状态，这里主要用于查询夹具
@@ -57,7 +64,7 @@ class Arm(object):
         self.arm.set_max_acceleration_scaling_factor(1)      #设置允许的最大速度和加速度
         self.arm.set_max_velocity_scaling_factor(1)
 
-        if gripper==True:
+        if gripper_ty==True:
             self.gripper_open=g_open
             self.gripper_close=g_open-80
         else:
@@ -170,12 +177,16 @@ class Arm(object):
             机械爪控制en  :True 抓取
                         :False 释放
         '''
-        if self.xarm=="varm":                   # 使用虚拟机控制机械臂
+        if self.xarm=="varm":
             if en:
-                self.gripper.publish(Int16(data=self.gripper_close))
+                err=self.gripper(self.gripper_close)
+                if err.result!=0:
+                    print("gripper run error!")
             else:
-                self.gripper.publish(Int16(data=self.gripper_open))
-        elif self.xarm=="xarm":                 # 直接控制真实机械臂
+                err=self.gripper(self.gripper_open)
+                if err.result!=0:
+                    print("gripper run error!")
+        elif self.xarm=="xarm":
             def gripper_arrive(data1,data2,err=10):
                 if abs(data1-data2)<err:
                     return True
@@ -232,18 +243,20 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, quit)                                
     signal.signal(signal.SIGTERM, quit)
     rospy.init_node("arm_debug", log_level=rospy.INFO)
-    arm=Arm(-40)                    #定义arm，此时机械臂的夹具打开角度为-40
+    arm=Arm(0)                    #定义arm，此时机械臂的夹具打开角度为-40
     while True:
         #获取机械臂当前位姿
         # __pose=arm.getPose()
         # print(__pose)
         # time.sleep(1)
+        
         # joint=[-1.2506586271897269, 0.5286612702579147, 1.0776951416698373, 1.1076528226707714, 0.29343878626744674]
         # arm.set_joint_value_target(joint)
         #获取机械臂的当前关节
         joint=arm.get_joints()
         print(joint)
         time.sleep(1)
+
         # arm.arm_goHome()
         # time.sleep(1)
         # arm.goPose_qua(green_box_pos+place_orientation)
@@ -252,6 +265,12 @@ if __name__ == '__main__':
         # arm.goPose_qua(green_box_pos+place_orientation)
         # time.sleep(1)
         # arm.rotate_gripper(0)
+
+        # 测试夹具
+        # arm.setGripper(1)
+        # time.sleep(1)
+        # arm.setGripper(0)
+        # time.sleep(1)
 
     
 
