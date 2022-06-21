@@ -210,7 +210,6 @@ class AiCamera(object):
         # {"red":[pos],"green":pos}
         # {"red":pos,"green":pos}
         self.cam_ctrl(True) 
-        time.sleep(0.5)         # 等待摄像头刷新
         self.block=[]  
         self.success_tag=[]
         self.point1=None
@@ -220,191 +219,201 @@ class AiCamera(object):
                 break
             time.sleep(0.1)
   
-        #检测底板
-        point=None
-        __la_pos=[]             #清除数据列表
-        num=0
-        palte_det_time=config['palte_det_time']
-        palte_det_err=config['palte_det_err']
-        palte_det_st=time.time()
-        while(point==None):
-            point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板,误差0.03(参数)
-            time.sleep(0.1)
-            if time.time()-palte_det_st>palte_det_time:
-                print("plate detetion timeout! retry")
-                return -1
-        times_of_palte_det=config['times_of_palte_det']
-        while True:
-            if len(__la_pos) == 0:
-                __la_pos = [point]
-                continue
-            point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板,误差0.03(参数)
-            if point!=None:
-                if self.__check(point[0][0],__la_pos[-1][0][0],this.err,this.err_a)==True and \
-                self.__check(point[0][1],__la_pos[-1][0][1],this.err,this.err_a)==True and \
-                self.__check(point[1][0],__la_pos[-1][1][0],this.err,this.err_a)==True and \
-                self.__check(point[1][1],__la_pos[-1][1][1],this.err,this.err_a)==True :
-                    __la_pos.append(point)
-                else:
+        try:
+            #检测底板
+            point=None
+            __la_pos=[]             #清除数据列表
+            num=0
+            palte_det_time=config['palte_det_time']
+            palte_det_err=config['palte_det_err']
+            palte_det_st=time.time()
+            while(point==None):
+                point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板,误差0.03(参数)
+                time.sleep(0.1)
+                if time.time()-palte_det_st>palte_det_time:
+                    print("plate detetion timeout! retry")
+                    return -1
+            times_of_palte_det=config['times_of_palte_det']
+            while True:
+                if len(__la_pos) == 0:
                     __la_pos = [point]
-            if len(__la_pos)==times_of_palte_det:
-                break
-            if time.time()-palte_det_st>palte_det_time:
-                print("plate detetion timeout! retry")
-                return -1
-        plate_det_use_time=time.time()-palte_det_st
-        sumx = sumy = sumx1 = sumy1 = 0
-        for m in __la_pos:
-            sumx += m[0][0]
-            sumy += m[0][1]
-            sumx1 += m[1][0]
-            sumy1 += m[1][1]
-        x = sumx / len(__la_pos)
-        y = sumy / len(__la_pos)
-        x1 = sumx1 / len(__la_pos)
-        y1 = sumy1 / len(__la_pos)
-        data=[x,y,x1,y1]
-        point1=[x,y]
-        point2=[x1,y1]
-        print("locating plate ---> %s use time: %.2f"%(data,plate_det_use_time))
-        self.__update_plate_par(data)               #更新定位板的位置
-        self.point1=copy.deepcopy(point1)           #左上角
-        self.point2=copy.deepcopy(point2)           #右下角
-
-        #检测颜色物体
-        for i in self.rec_cla_dict.keys():
-            self.rec_cla_dict[i]["pos"]=None                # 清理位置数据 
-            pos=None
-            la_pos=[]
-            block_loc_st=time.time()                        # 记录木块定位的起始时间
-            def color_det(color,st_time):                           # 初步判断此颜色目标是否存在
-                __pos=None
-                num=0
-                while True:
-                    __pos=self.rec_cla_dict[color]["class"].find_pos(self.frame)    #[[同色物块1][同色物块2][同色物块3][同色物块4]....]
-                    pos_ls=[]
-                    if __pos!=None:
-                        for i in __pos:
-                            if self.point1!=None and self.point2!=None:         #检测识别颜色木块是否在定位框内
-                                if i[0]<self.point2[0] and i[0]>self.point1[0] and \
-                                i[1]<self.point2[1] and i[1]> self.point1[1]:
-                                    pos_ls.append([i])          #在定位框内添加
-                                    num+=1              # 有效数量
-                                else:
-                                    pos_ls.append([])           #在定位框内添加空
-                            else:
-                                return -1,pos_ls,num    # 没有定位点
-                        if num>0:                       # 定位框内有木块
-                            return 0,pos_ls,num         
-                        else:
-                            return -1,pos_ls,num        # 超出范围
-                    time.sleep(0.1)
-                    if time.time()-st_time>config['color_det_time']:
-                        return -1,__pos,num 
-            color_det_st=time.time()
-            sta,pos,num=color_det(i,color_det_st)                    # 返回初次探测到的该类颜色的所有检测对象
-            color_det_use_time=time.time()-color_det_st
-            # (初次探测下的)检测状态位,位置列表,检测在定位框内的有效数量
-            # print("pos",pos)                          # [[[同色物块1]], [[同色物块2]], [[同色物块3]]]
-            if sta==0:
-                print("%s Detected"%i)
-            else:
-                print("%s Not Detected"%i)
-                continue
-
-            def color_det_ex(color,init_pos,valid_num,st_time):         # 识别颜色木块位置
-                __la_pos=[] 
-                color_loc_times=config['color_loc_times']       # 参数:重复检测次数
-                success_idx=[]
-                err_num=0
-                def clear():        # 清理该颜色所有的检测结果
-                    for i in range(len(__la_pos)):
-                        __la_pos[i]=[]
-                while True:              
-                    if len(__la_pos) == 0:
-                        __la_pos = init_pos            # [[] [[同色物块2]] [[同色物块3]] [[同色物块4]]....]  经过区域筛选
-                        continue
-                    # print(__la_pos)
-                    pos=self.rec_cla_dict[color]["class"].find_pos(self.frame)  #[[同色物块1][同色物块2][同色物块3][同色物块4]....]
-                    if pos!=None and len(__la_pos)==len(pos):
-                        err_num=0
-                        for i in range(len(pos)):
-                            if i in success_idx:                        #满足要求的不再继续采集
-                                continue
-                            if len(__la_pos[i])==color_loc_times:       #采集数量满足要求
-                                success_idx.append(i)
-                                continue
-                            if self.point1!=None and self.point2!=None:
-                                if pos[i][0]<self.point2[0] and pos[i][0]>self.point1[0] and \
-                                pos[i][1]< self.point2[1] and pos[i][1]> self.point1[1]:
-                                    if __la_pos[i]:
-                                        if self.__check(pos[i][0],__la_pos[i][-1][0],this.err,this.err_a)==True and \
-                                        self.__check(pos[i][1],__la_pos[i][-1][1],this.err,this.err_a)==True and \
-                                        self.__check(pos[i][2],__la_pos[i][-1][2],this.err,this.err_a)==True :
-                                            __la_pos[i].append(pos[i])      #[[] [[同色物块2][同色物块2]] [[同色物块3]] [[同色物块4]]....]
-                                        else:
-                                            __la_pos[i] = [pos[i]]          #重新取数据
-                                else:
-                                    __la_pos[i]=[]      # 超出范围
-                            else:
-                                print("error! no anchor point")
-                                return -1,__la_pos      # 没有定位点 
+                    continue
+                point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板,误差0.03(参数)
+                if point!=None:
+                    if self.__check(point[0][0],__la_pos[-1][0][0],this.err,this.err_a)==True and \
+                    self.__check(point[0][1],__la_pos[-1][0][1],this.err,this.err_a)==True and \
+                    self.__check(point[1][0],__la_pos[-1][1][0],this.err,this.err_a)==True and \
+                    self.__check(point[1][1],__la_pos[-1][1][1],this.err,this.err_a)==True :
+                        __la_pos.append(point)
                     else:
-                        if len(__la_pos)!=len(pos):     # 颜色参数不稳定导致错误，建议调整颜色参数使物体框稳定
-                            if err_num<this.err_times:
-                                err_num+=1
-                                print("error! Length of __la_pos and pos is inconsistent! retry!") 
-                                print('__la_pos:%s length:%d'%(__la_pos,len(__la_pos)))
-                                print('pos:%s length:%d'%(pos,len(pos)))
+                        __la_pos = [point]
+                if len(__la_pos)==times_of_palte_det:
+                    break
+                if time.time()-palte_det_st>palte_det_time:
+                    print("plate detetion timeout! retry")
+                    return -1
+            plate_det_use_time=time.time()-palte_det_st
+            sumx = sumy = sumx1 = sumy1 = 0
+            for m in __la_pos:
+                sumx += m[0][0]
+                sumy += m[0][1]
+                sumx1 += m[1][0]
+                sumy1 += m[1][1]
+            x = sumx / len(__la_pos)
+            y = sumy / len(__la_pos)
+            x1 = sumx1 / len(__la_pos)
+            y1 = sumy1 / len(__la_pos)
+            data=[x,y,x1,y1]
+            point1=[x,y]
+            point2=[x1,y1]
+            print("locating plate ---> %s use time: %.2f"%(data,plate_det_use_time))
+            self.__update_plate_par(data)               #更新定位板的位置
+            self.point1=copy.deepcopy(point1)           #左上角
+            self.point2=copy.deepcopy(point2)           #右下角
+
+            #检测颜色物体
+            for i in self.rec_cla_dict.keys():
+                self.rec_cla_dict[i]["pos"]=None                # 清理位置数据 
+                pos=None
+                la_pos=[]
+                block_loc_st=time.time()                        # 记录木块定位的起始时间
+                def color_det(color,st_time):                           # 初步判断此颜色目标是否存在
+                    __pos=None
+                    num=0
+                    while True:
+                        __pos=self.rec_cla_dict[color]["class"].find_pos(self.frame)    #[[同色物块1][同色物块2][同色物块3][同色物块4]....]
+                        pos_ls=[]
+                        if __pos!=None:
+                            for i in __pos:
+                                if self.point1!=None and self.point2!=None:         #检测识别颜色木块是否在定位框内
+                                    if i[0]<self.point2[0] and i[0]>self.point1[0] and \
+                                    i[1]<self.point2[1] and i[1]> self.point1[1]:
+                                        pos_ls.append([i])          #在定位框内添加
+                                        num+=1              # 有效数量
+                                    else:
+                                        pos_ls.append([])           #在定位框内添加空
+                                else:
+                                    return -1,pos_ls,num    # 没有定位点
+                            if num>0:                       # 定位框内有木块
+                                return 0,pos_ls,num         
                             else:
+                                return -1,pos_ls,num        # 超出范围
+                        time.sleep(0.1)
+                        if time.time()-st_time>config['color_det_time']:
+                            return -1,__pos,num 
+                color_det_st=time.time()
+                sta,pos,num=color_det(i,color_det_st)                    # 返回初次探测到的该类颜色的所有检测对象
+                color_det_use_time=time.time()-color_det_st
+                # (初次探测下的)检测状态位,位置列表,检测在定位框内的有效数量
+                # print("pos",pos)                          # [[[同色物块1]], [[同色物块2]], [[同色物块3]]]
+                if sta==0:
+                    print("%s Detected"%i)
+                else:
+                    print("%s Not Detected"%i)
+                    continue
+
+                def color_det_ex(color,init_pos,valid_num,st_time):         # 识别颜色木块位置
+                    __la_pos=[] 
+                    color_loc_times=config['color_loc_times']       # 参数:重复检测次数
+                    success_idx=[]
+                    err_num=0
+                    def clear():        # 清理该颜色所有的检测结果
+                        for i in range(len(__la_pos)):
+                            __la_pos[i]=[]
+                    while True:              
+                        if len(__la_pos) == 0:
+                            if init_pos:
+                                pass
+                            else:
+                                return -1,__la_pos          # init_pos无数据
+                            __la_pos = init_pos             # [[] [[同色物块2]] [[同色物块3]] [[同色物块4]]....]  经过区域筛选
+                            continue
+                        # print(__la_pos)
+                        pos=self.rec_cla_dict[color]["class"].find_pos(self.frame)  #[[同色物块1][同色物块2][同色物块3][同色物块4]....]
+                        if pos!=None and __la_pos!=None:
+                            if len(__la_pos)==len(pos):
+                                err_num=0
+                                for i in range(len(pos)):
+                                    if i in success_idx:                        #满足要求的不再继续采集
+                                        continue
+                                    if len(__la_pos[i])==color_loc_times:       #采集数量满足要求
+                                        success_idx.append(i)
+                                        continue
+                                    if self.point1!=None and self.point2!=None:
+                                        if pos[i][0]<self.point2[0] and pos[i][0]>self.point1[0] and \
+                                        pos[i][1]< self.point2[1] and pos[i][1]> self.point1[1]:
+                                            if __la_pos[i]:
+                                                if self.__check(pos[i][0],__la_pos[i][-1][0],this.err,this.err_a)==True and \
+                                                self.__check(pos[i][1],__la_pos[i][-1][1],this.err,this.err_a)==True and \
+                                                self.__check(pos[i][2],__la_pos[i][-1][2],this.err,this.err_a)==True :
+                                                    __la_pos[i].append(pos[i])      #[[] [[同色物块2][同色物块2]] [[同色物块3]] [[同色物块4]]....]
+                                                else:
+                                                    __la_pos[i] = [pos[i]]          #重新取数据
+                                        else:
+                                            __la_pos[i]=[]      # 超出范围
+                                    else:
+                                        print("error! no anchor point")
+                                        return -1,__la_pos      # 没有定位点 
+                            else:                                                   # 颜色参数不稳定导致错误，建议调整颜色参数使物体框稳定
+                                if err_num< this.err_times:                         # 错误情况重复检测次数
+                                    err_num+=1
+                                    print("error! Length of __la_pos and pos is inconsistent! retry!") 
+                                    print('__la_pos:%s length:%d'%(__la_pos,len(__la_pos)))
+                                    print('pos:%s length:%d'%(pos,len(pos)))
+                                else:
+                                    clear()
+                                    return -1,__la_pos          # 初次探测和检测数量不一致   
+                        def check():                        # 将没有采集完全的木块数据全部清除
+                            for i in range(len(pos)):
+                                if i not in success_idx:
+                                    __la_pos[i]=[]
+                        if len(success_idx)==valid_num:     # 所有同色木块数据都满足数量
+                            check()
+                            return 0,__la_pos
+                        # time.sleep(0.1)
+                        if time.time()-st_time>config['color_loc_time']:
+                            if len(success_idx)==0:
                                 clear()
-                                return -1,__la_pos          # 初次探测和检测数量不一致   
-                    def check():                        # 将没有采集完全的木块数据全部清除
-                        for i in range(len(pos)):
-                            if i not in success_idx:
-                                __la_pos[i]=[]
-                    if len(success_idx)==valid_num:     # 所有同色木块数据都满足数量
-                        check()
-                        return 0,__la_pos
-                    # time.sleep(0.1)
-                    if time.time()-st_time>config['color_loc_time']:
-                        if len(success_idx)==0:
-                            clear()
-                            print("error! color_det_ex timed out")
-                            return -1,__la_pos          # 定位超时     
-                        check()
-                        return 0,__la_pos               # 返回有效检测的一部分
-            color_det_ex_st=time.time()
-            sta,la_pos=color_det_ex(i,pos,num,color_det_ex_st)
-            color_det_ex_use_time=time.time()-color_det_ex_st
-            # [[[同色物块1], [同色物块1], [同色物块1], [同色物块1], [同色物块1]]])
-            if sta==0:                              #定位木块成功
-                #[[同色物块1,同色物块1,同色物块1..] [同色物块2,同色物块2..] [同色物块3,同色物块3..] ....]
-                print("%s Block positioning succeeded! data:%s "%(i,la_pos))
-                print('det use time: %.2f loc use time: %.2f'%(color_det_use_time,color_det_ex_use_time))
-                data=[]
-                for m in la_pos:
-                    if m:
-                        sumx = sumy = sumw = 0
-                        for n in m:
-                            sumx += n[0]
-                            sumy += n[1]
-                            sumw += n[2]
-                        x = sumx / len(m)
-                        y = sumy / len(m)
-                        w = sumw / len(m)
-                        z=[x,y,w]
-                        data.append(z)
-                self.rec_cla_dict[i]["pos"]=copy.deepcopy(data)         #将该颜色像素坐标和角度储存
-                self.rec_cla_dict[i]["class"].close_win()
-                # print(i,self.rec_cla_dict[i]["pos"])
-                self.block.append(data)
-                self.success_tag.append(i)
-            else:                                                       #定位木块失败
+                                print("error! color_det_ex timed out")
+                                return -1,__la_pos          # 定位超时     
+                            check()
+                            return 0,__la_pos               # 返回有效检测的一部分
+                color_det_ex_st=time.time()
+                sta,la_pos=color_det_ex(i,pos,num,color_det_ex_st)
+                color_det_ex_use_time=time.time()-color_det_ex_st
+                # [[[同色物块1], [同色物块1], [同色物块1], [同色物块1], [同色物块1]]])
+                if sta==0:                              #定位木块成功
+                    #[[同色物块1,同色物块1,同色物块1..] [同色物块2,同色物块2..] [同色物块3,同色物块3..] ....]
+                    print("%s Block positioning succeeded! data:%s "%(i,la_pos))
+                    print('det use time: %.2f loc use time: %.2f'%(color_det_use_time,color_det_ex_use_time))
+                    data=[]
+                    for m in la_pos:
+                        if m:
+                            sumx = sumy = sumw = 0
+                            for n in m:
+                                sumx += n[0]
+                                sumy += n[1]
+                                sumw += n[2]
+                            x = sumx / len(m)
+                            y = sumy / len(m)
+                            w = sumw / len(m)
+                            z=[x,y,w]
+                            data.append(z)
+                    self.rec_cla_dict[i]["pos"]=copy.deepcopy(data)         #将该颜色像素坐标和角度储存
+                    self.rec_cla_dict[i]["class"].close_win()
+                    # print(i,self.rec_cla_dict[i]["pos"])
+                    self.block.append(data)
+                    self.success_tag.append(i)
+                else:                                                       #定位木块失败
+                    self.rec_cla_dict[i]["pos"]=None         
+                    self.rec_cla_dict[i]["class"].close_win()
+                    print("%s Block positioning failed"%i)
+                    continue
+        except TypeError as e:
+            print(e)    
+            for i in self.rec_cla_dict.keys():
                 self.rec_cla_dict[i]["pos"]=None         
                 self.rec_cla_dict[i]["class"].close_win()
-                print("%s Block positioning failed"%i)
-                continue
         self.cam_ctrl(False)                                            #关闭摄像头
         return 0
 

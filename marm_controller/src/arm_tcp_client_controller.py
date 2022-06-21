@@ -57,9 +57,9 @@ def response():
                 return 2   
         except (socket.timeout, socket.error, Exception) as e:  #数据超时,数据错误
             rospy.logerr(str(e))        #打印具体信息
-            client.close()              #关闭客户端
-            rospy.logerr('client close Done') 
-            return -1          
+            # client.close()              #关闭客户端
+            # rospy.logerr('client close Done') 
+            # return -1          
 
 def gripper_control(data):
     client_senddata(1,data.data) 
