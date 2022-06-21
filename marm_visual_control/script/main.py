@@ -1,6 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+##############################################################################################
+# 文件：main.py
+# 作者：Zonesion wanghao 20220412
+# 说明：aiarm 主应用程序
+# 修改：20220510  增加config文件统一存储参数
+#       20220621  适配新的机械臂，修改具体点位
+# 注释：
+##############################################################################################
 import rospy
 import time
 import copy 
@@ -45,7 +53,7 @@ loc_plate_act_origin 单位 m  实际定位原点 相对base_link
 arm_g_height=0.134
 #拍照位
 # arm_cam_joint=[0.1485716895448097, -0.23415630833973927, 1.0167376947524824, 1.7713593460377164, 0.14]  #旧鱼眼
-arm_cam_joint=[-0.09012192015910722, -0.04428321319882354, 0.8573005610356529, 1.9794888436393088, -0.003386580708640897]
+arm_cam_joint=[-0.09012192015910722, -0.04428321319882354, 0.8573005610356529, 1.9794888436393088, -0.018]
 #过渡位
 arm_trans_joint=[1.3780610085141091e-05, 0.005306861269549153, 0.97426785523231, 1.3754647497671328, 5.618289536439448e-05]
 #放料位
@@ -61,7 +69,7 @@ place_yellow_pos=[-1.5579521399156477, 0.2752727085124672, 1.5744065335667794, 1
 def quit(signum, frame):
     print('EXIT APP') 
     sys.exit()
-    # rospy.signal_shutdown("arm is stopping")            #发出机械臂停止运动信号
+    # rospy.signal_shutdown("arm is stopping")                  #发出机械臂停止运动信号
 
 from arm import Arm
 from camera import AiCamera
@@ -103,7 +111,7 @@ class AiArm(Arm,AiCamera):
             time.sleep(1) 
         
 def aiarmAPP():
-    # win=[98,420,103,560]      #选择剪裁窗口
+    # win=[98,420,103,560]                                      #选择剪裁窗口
     win = []
     aiarm=AiArm(g_open,("red","yellow","blue","green"),win,loc_plate,loc_plate_act,loc_plate_act_origin,loc_x_off_mx,loc_x_off_mi,
     loc_y_off_mx,this.color_param,this.bin_param)               #初始化AIarm，带有四种颜色识别模块
@@ -192,5 +200,5 @@ def aiarmAPP():
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, quit)                                
     signal.signal(signal.SIGTERM, quit)
-    rospy.init_node("AIARM_NODE", log_level=rospy.INFO)     #初始化节点
-    aiarmAPP()                                              #开始机械臂的物料筛选应用
+    rospy.init_node("AIARM_NODE", log_level=rospy.INFO)         #初始化节点
+    aiarmAPP()                                                  #开始机械臂的物料筛选应用

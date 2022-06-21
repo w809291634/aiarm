@@ -135,13 +135,13 @@ class AiCamera(object):
                     img=self.__undistort(img)
                     if len(self.win)!=0:
                         img = img[self.win[0]:self.win[1], self.win[2]:self.win[3]] #裁剪图像   
-                    if self.point1!=None and self.point2!=None :
+                    if self.point1!=None and self.point2!=None :        # 如果识别出定位框，画出定位点
                         point1=copy.deepcopy(self.point1)
                         point2=copy.deepcopy(self.point2)
                         self.__drawpoint(img,self.point1)
                         self.__drawpoint(img,self.point2)
 
-                    for i in range(len(self.block)):
+                    for i in range(len(self.block)):                    # 如果识别出木块，画出木块位置点
                         for m in self.block[i]:
                             if m !=None:
                                 point=[m[0],m[1]]
@@ -238,7 +238,7 @@ class AiCamera(object):
                 if len(__la_pos) == 0:
                     __la_pos = [point]
                     continue
-                point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板,误差0.03(参数)
+                point=self.plate_det.plate_det(self.frame,check=True,err=palte_det_err)       #检测定位板
                 if point!=None:
                     if self.__check(point[0][0],__la_pos[-1][0][0],this.err,this.err_a)==True and \
                     self.__check(point[0][1],__la_pos[-1][0][1],this.err,this.err_a)==True and \
