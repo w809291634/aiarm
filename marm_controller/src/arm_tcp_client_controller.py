@@ -26,7 +26,8 @@ server_port=9090
 cmd_cancel=0
 g_open=config["g_open"]
 
-
+import threading
+mutex = threading.Lock()
 def cmdfu(arg):                         #机械臂取消动作回调函数
     rospy.logwarn("Console cancel command")
     global cmd_cancel
@@ -50,20 +51,23 @@ def client_senddata(ty,data):        #客户端发送数据函数
 def response():
     while True:
         try:
-            data=client.recv(100)       #从服务器接受响应帧.阻塞式等待数据
+            data=client.recv(100)           #从服务器接受响应帧.阻塞式等待数据
             if data=="arm_response" :       #如果数据正确
                 return 1
             if data=="gripper_response" :
                 return 2   
         except (socket.timeout, socket.error, Exception) as e:  #数据超时,数据错误
             rospy.logerr(str(e))        #打印具体信息
-            # client.close()              #关闭客户端
-            # rospy.logerr('client close Done') 
-            # return -1          
+            client.close()              #关闭客户端
+            rospy.logerr('client close Done') 
+            return -1          
 
 def gripper_control(data):
+    mutex.acquire()
     client_senddata(1,data.data) 
     response()
+    rospy.logwarn("gripper go success!")
+    mutex.release()
 
 class JointTrajectoryActionServer(object):
     # create messages that are used to publish feedback/result
@@ -132,7 +136,8 @@ class JointTrajectoryActionServer(object):
                 return
         self._as.set_succeeded(self._result)        
 
-    def execute_cb_ex(self, arg):                    
+    def execute_cb_ex(self, arg):    
+        mutex.acquire()                
         trajectory = arg.trajectory   
         time=len(trajectory.points)
         point=trajectory.points[-1]
@@ -142,15 +147,19 @@ class JointTrajectoryActionServer(object):
         if(response()==1):              #服务器响应
             self.arm_JointState_update(trajectory.joint_names,point.positions)
         else:
+            rospy.logerr("server connect error!")        #打印具体信息
+            mutex.release()
             return
+        rospy.logwarn("arm go success!")
         self._as.set_succeeded(self._result)  
+        mutex.release()
 
 
 if __name__ == '__main__':
     rospy.init_node('arm-controller')     
     client = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
     client.connect((server_ipaddress,server_port))  
-    client.settimeout(2)                    #收发数据超时时间等等
+    client.settimeout(15)                    #收发数据超时时间等等
     print("xcar server connect ok")
     server = JointTrajectoryActionServer("arm_controller/follow_joint_trajectory")   
     rospy.Subscriber('/arm_controller/follow_joint_trajectory/cancel',GoalID,cmdfu)    #订阅控制板命令,实现机械臂紧急停止

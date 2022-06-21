@@ -6,14 +6,27 @@ from std_msgs.msg import Int16MultiArray,Int32,Int32MultiArray
 import sys
 import socket
 import time
+import yaml
 
+this = sys.modules[__name__]
 #小车服务器的IP地址
 server_ipaddress='192.168.100.144'                      #IP地址根据实际情况设定
 server_port=9090
+this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.load(f.read())
 
+g_open=config["g_open"]
+arm_query_time=config["arm_query_time"]     #机械臂查询关节位置周期
+arm_wait_para=config["arm_wait_para"]      #机械臂运动超时时间系数
+arm_arrive_err=config["arm_arrive_err"]
 
-arm_joint=[]
-arm_res=0
+grip_query_time=config["grip_query_time"]       #机械臂夹具查询关节位置周期
+grip_wait_time=config["grip_wait_time"]         #机械臂夹具运动超时时间系数
+gripper_arrive_err=config["gripper_arrive_err"] 
+
+this.arm_joint=[]
+this.arm_res=0
 
 def arm_arrive(joint1,joint2,err=10):
     if len(joint1)>0 and len(joint2)>0:
@@ -57,64 +70,67 @@ if __name__=='__main__':
                     pass
                     # print(e)  
                 if data:
-                    if data.find('arm')!=-1 and data.find('arm')==0:
+                    if data.find('arm')!=-1 and data.find('arm')==0:    # 动作机械臂的消息
                         symbol=data.find('arm')  
                         data=data[symbol+4:]
                         print('data',data)
                         point=[]                            
-                        while data.find(',')>0:             #对接收的数据进行转换处理
+                        while data.find(',')>0:                     # 对接收的数据进行转换处理
                             symbol=data.find(',')  
-                            coord=int(data[0:symbol])     
+                            coord=int(data[0:symbol])               # 
                             point.append(coord)             
                             data=data[symbol+1:]                               
                         point.append(int(data))  
-                        wt=float((abs(point[-1]/1000)+1)*2)   
+                        
+                        wt=float((abs(point[-1]/1000)+1)*arm_wait_para)   
                         rospy.loginfo("arm wait time %fs"%wt)
                         point_tuple=tuple(point[0:-1])   
-                        point=Int16MultiArray(data=point)   #转换消息格式
+                        point=Int16MultiArray(data=point)           #转换消息格式
                         st1=time.time()
                         while True:
                             arm_ctlPub.publish(point)               #发布数据控制真实机械臂    
                             arm_res=0
                             arm_status_pub.publish(Int32(1))
-                            time.sleep(0.2)
+                            time.sleep(arm_query_time)
                             st=time.time()
-                            while not arm_res:
-                                time.sleep(0.01)
-                                if time.time()-st>0.1:          # 等待
+                            while not this.arm_res:
+                                time.sleep(0.02)
+                                if time.time()-st>arm_query_time:          # 等待
                                     print("no arm_res")
                                     break 
-                            # print("arm_1",point_tuple)
-                            # print("arm_2",arm_joint[1:])
-                            if arm_arrive(point_tuple,arm_joint[1:])==True:
-                                rospy.loginfo("arm run success")
-                                break
+                            if this.arm_res==1:
+                                # print("arm_1",point_tuple)
+                                # print("arm_2",arm_joint[1:])
+                                if arm_arrive(point_tuple,arm_joint[1:],arm_arrive_err)==True:
+                                    rospy.loginfo("arm run success")
+                                    break
                             if time.time()-st1>wt:               # 等待
-                                rospy.logerr("arm run error! or no arrive")
-                                break 
+                                rospy.logerr("arm run error!")
+                                break   
                         conn.send("arm_response")
 
-                    elif data.find('gripper')!=-1 and data.find('gripper')==0:
+                    elif data.find('gripper')!=-1 and data.find('gripper')==0:  # 动作夹具的消息
                         symbol=data.find('gripper')  
                         data=int(data[symbol+8:])               #去掉数据帧头
                         st1=time.time()
                         while True:
                             gripper_ctlPub.publish(Int32(data))              
-                            arm_res=0
+                            this.arm_res=0
                             arm_status_pub.publish(Int32(1))
-                            time.sleep(0.2)
+                            time.sleep(grip_query_time)
                             st=time.time()
-                            while not arm_res:
-                                time.sleep(0.01)
-                                if time.time()-st>0.1:          # 等待
+                            while not this.arm_res:
+                                time.sleep(0.02)
+                                if time.time()-st>grip_query_time:          # 等待
                                     print("no arm_res")
                                     break 
-                            # print("g_1",data)
-                            # print("g_2",arm_joint[0])
-                            if gripper_arrive(data,arm_joint[0])==True:
-                                rospy.loginfo("gripper run success")
-                                break
-                            if time.time()-st1>3:               # 等待
+                            if this.arm_res==1:
+                                # print("g_1",data)
+                                # print("g_2",arm_joint[0])
+                                if gripper_arrive(data,arm_joint[0],gripper_arrive_err)==True:
+                                    rospy.loginfo("gripper run success")
+                                    break
+                            if time.time()-st1>grip_wait_time:               # 等待
                                 rospy.logerr("gripper run error!")
                                 break 
                         conn.send("gripper_response")

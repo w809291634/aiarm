@@ -170,12 +170,12 @@ class Arm(object):
             机械爪控制en  :True 抓取
                         :False 释放
         '''
-        if self.xarm=="varm":
+        if self.xarm=="varm":                   # 使用虚拟机控制机械臂
             if en:
                 self.gripper.publish(Int16(data=self.gripper_close))
             else:
                 self.gripper.publish(Int16(data=self.gripper_open))
-        elif self.xarm=="xarm":
+        elif self.xarm=="xarm":                 # 直接控制真实机械臂
             def gripper_arrive(data1,data2,err=10):
                 if abs(data1-data2)<err:
                     return True
