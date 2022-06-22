@@ -18,7 +18,7 @@ bin_param:
 matchShapes_value: 0.1
 
 #定位参数
-palte_det_time: 7.0     #底板检测超时时间
+palte_det_time: 8.0     #底板检测超时时间
 times_of_palte_det: 3   #底板检测重复次数
 palte_det_err: 0.03     #底板检测误差
 

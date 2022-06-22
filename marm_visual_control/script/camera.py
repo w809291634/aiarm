@@ -129,7 +129,8 @@ class AiCamera(object):
                 while True:
                     success, frame = self.cap.read()
                     if not success:
-                        time.sleep(0.1)
+                        time.sleep(1)
+                        print("no camera detect,please check whether the camera is connected normally")
                         continue
                     img=copy.deepcopy(frame)
                     img=self.__undistort(img)
@@ -217,7 +218,8 @@ class AiCamera(object):
         while(np.size(self.frame)==0):
             if np.size(self.frame)!=0:
                 break
-            time.sleep(0.1)
+            print("waiting for camera data")
+            time.sleep(0.5)
   
         try:
             #检测底板
@@ -277,6 +279,9 @@ class AiCamera(object):
                 pos=None
                 la_pos=[]
                 block_loc_st=time.time()                        # 记录木块定位的起始时间
+                ##############################################################################################
+                # 颜色探测函数
+                ##############################################################################################
                 def color_det(color,st_time):                           # 初步判断此颜色目标是否存在
                     __pos=None
                     num=0
@@ -311,7 +316,9 @@ class AiCamera(object):
                 else:
                     print("%s Not Detected"%i)
                     continue
-
+                ##############################################################################################
+                # 颜色定位函数
+                ##############################################################################################
                 def color_det_ex(color,init_pos,valid_num,st_time):         # 识别颜色木块位置
                     __la_pos=[] 
                     color_loc_times=config['color_loc_times']       # 参数:重复检测次数
