@@ -62,7 +62,7 @@ def response():
             return 1
         elif data=="gripper_response" :
             return 2   
-        elif data==None:
+        elif data==None:                #服务器不存在，没有数据
             return -1
         else:
             return -1
