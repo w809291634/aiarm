@@ -56,18 +56,22 @@ if __name__=='__main__':
     
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1) 
-    server.bind((server_ipaddress,server_port))         
+    server.bind((server_ipaddress,server_port))        
     server.listen(1)                                    
     while True:                                         
-        print("The server is ready and waiting for connection")
-        conn,addr = server.accept()                     
-        print(conn,addr)
+        rospy.loginfo("The server is ready and waiting for connection")
+        try:
+            conn,addr = server.accept()                     
+            print(conn,addr)
+        except socket.timeout as e:
+            rospy.logerr(e)  
+            continue
         while True:
                 try:
                     data = conn.recv(100)                   #接收从客户端来的数据
                 except socket.timeout as e:
-                    pass
-                    # print(e)  
+                    rospy.logwarn(str(e)+',retry')  
+                    continue
                 if data:
                     if data.find('arm')!=-1 and data.find('arm')==0:    # 动作机械臂的消息
                         symbol=data.find('arm')  

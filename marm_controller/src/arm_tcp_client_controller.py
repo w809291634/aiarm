@@ -10,7 +10,7 @@ from actionlib_msgs.msg import  GoalID
 import socket  
 import time
 import yaml
-import sys
+import sys,signal,os
 from marm_controller.srv import *
 this = sys.modules[__name__]
 
@@ -29,6 +29,12 @@ g_open=config["g_open"]
 
 import threading
 mutex = threading.Lock()
+
+def quit(signum, frame):
+    print('EXIT APP') 
+    sys.exit()
+    # rospy.signal_shutdown("arm is stopping")                  #发出机械臂停止运动信号
+
 def cmdfu(arg):                         #机械臂取消动作回调函数
     rospy.logwarn("Console cancel command")
     global cmd_cancel
@@ -50,18 +56,21 @@ def client_senddata(ty,data):        #客户端发送数据函数
         pass
 
 def response():
-    while True:
-        try:
-            data=client.recv(100)           #从服务器接受响应帧.阻塞式等待数据
-            if data=="arm_response" :       #如果数据正确
-                return 1
-            if data=="gripper_response" :
-                return 2   
-        except (socket.timeout, socket.error, Exception) as e:  #数据超时,数据错误
-            rospy.logerr(str(e))            #打印具体信息
-            client.close()                  #关闭客户端
-            rospy.logerr('client close Done') 
-            return -1          
+    try:
+        data=client.recv(100)           #从服务器接受响应帧.阻塞式等待数据
+        if data=="arm_response" :       #如果数据正确
+            return 1
+        elif data=="gripper_response" :
+            return 2   
+        elif data==None:
+            return -1
+        else:
+            return -1
+    except (socket.timeout, socket.error, Exception) as e:  #数据超时,数据错误
+        rospy.logerr(str(e))            #打印具体信息
+        client.close()                  #关闭客户端
+        rospy.logerr('client close Done') 
+        os._exit(0)  
 
 def gripper_control(data):                  #夹具控制
     mutex.acquire()
@@ -143,33 +152,42 @@ class JointTrajectoryActionServer(object):
                 return
         self._as.set_succeeded(self._result)        
 
-    def execute_cb_ex(self, arg):           #机械臂控制
-        mutex.acquire()                
+    def execute_cb_ex(self, arg):                       #机械臂控制
+        mutex.acquire()             
         trajectory = arg.trajectory   
         time=len(trajectory.points)
         point=trajectory.points[-1]
         pos = self.deocdePos(trajectory.joint_names, point) 
-        pos.append(int(time*40))     #机械臂最后一个参数可以控制运动速度
+        pos.append(int(time*40))                        #机械臂最后一个参数可以控制运动速度
         client_senddata(0,pos) 
-        if(response()==1):              #服务器响应
+        if(response()==1):                              #服务器响应
             self.arm_JointState_update(trajectory.joint_names,point.positions)
         else:
-            rospy.logerr("server connect error!")        #打印具体信息
-            mutex.release()
+            rospy.logerr("server connect error!")       #打印具体信息
+            client.close()                              #关闭客户端
+            rospy.logerr('client close Done') 
+            os._exit(0)
             return
         rospy.logwarn("arm go success!")
         self._as.set_succeeded(self._result)  
         mutex.release()
 
-
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT, quit)                          
+    signal.signal(signal.SIGTERM, quit)
+
     rospy.init_node('arm-controller')     
-    client = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
-    client.connect((server_ipaddress,server_port))  
-    client.settimeout(15)                    #收发数据超时时间等等
-    print("xcar server connect ok")
+    # 相关的socket客户端配置
+    client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    client.settimeout(15)                               #收发数据超时时间等等
+    res=client.connect_ex((server_ipaddress,server_port))  
+    if res==0:
+        rospy.loginfo("xcar server connect ok")
+    else:
+        rospy.logerr("xcar server connect fail")
+        sys.exit()
+    # 相关服务
     server = JointTrajectoryActionServer("arm_controller/follow_joint_trajectory")   
     rospy.Subscriber('/arm_controller/follow_joint_trajectory/cancel',GoalID,cmdfu)         # 订阅控制板命令,实现机械臂紧急停止
     service_gripper = rospy.Service('/arm_controller/gripper', gripper, gripper_control)    # 建立服务 等待客户端进行连接
     rospy.spin()
-
