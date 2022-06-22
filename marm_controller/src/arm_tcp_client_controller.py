@@ -58,12 +58,12 @@ def response():
             if data=="gripper_response" :
                 return 2   
         except (socket.timeout, socket.error, Exception) as e:  #数据超时,数据错误
-            rospy.logerr(str(e))        #打印具体信息
-            client.close()              #关闭客户端
+            rospy.logerr(str(e))            #打印具体信息
+            client.close()                  #关闭客户端
             rospy.logerr('client close Done') 
             return -1          
 
-def gripper_control(data):
+def gripper_control(data):                  #夹具控制
     mutex.acquire()
     client_senddata(1,data.data)                            # 发送控制数据
     code=response()                                         # 获取请求结果
@@ -143,7 +143,7 @@ class JointTrajectoryActionServer(object):
                 return
         self._as.set_succeeded(self._result)        
 
-    def execute_cb_ex(self, arg):    
+    def execute_cb_ex(self, arg):           #机械臂控制
         mutex.acquire()                
         trajectory = arg.trajectory   
         time=len(trajectory.points)

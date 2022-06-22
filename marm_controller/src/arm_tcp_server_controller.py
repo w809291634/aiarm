@@ -50,9 +50,8 @@ if __name__=='__main__':
     gripper_ctlPub=rospy.Publisher('/xcar/gripper', Int32, queue_size=0, latch=True)
     arm_status_pub=rospy.Publisher('/xcar/arm_status_req', Int32, queue_size=0, latch=True)
     def __arm_joint(msg):
-        global arm_joint,arm_res
-        arm_joint=msg.data
-        arm_res=1
+        this.arm_joint=msg.data
+        this.arm_res=1
     rospy.Subscriber('/xcar/arm_status', Int32MultiArray, __arm_joint)
     
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
