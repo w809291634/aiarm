@@ -82,7 +82,7 @@ class Color_Rec(object):
     def nothing(self,*arg):
         pass
 
-    def __undistort(self,src):   #矫正
+    def __undistort(self,src):           #矫正
         DIM=(640, 480)
         K=np.array([[361.6681963247486, 0.0, 331.640979254225], [0.0, 361.1945327740211, 224.49449156302728], [0.0, 0.0, 1.0]])
         D=np.array([[-0.04216543964788291], [0.15543013098889183], [-0.40349493136105163], [0.3373959977368023]])
@@ -90,7 +90,7 @@ class Color_Rec(object):
         __img = cv2.remap(src, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
         return __img
 
-    def __undistort_new(self,src):   #矫正
+    def __undistort_new(self,src):          #矫正
         DIM=(640, 480)
         K=np.array([[437.5491127380999, 0.0, 283.9999474900146], [0.0, 438.18423945586335, 252.71116475229556], [0.0, 0.0, 1.0]])
         D=np.array([[-0.06208478317715735], [-0.18283561976377807], [0.5460914487840476], [-0.5218727344866557]])
