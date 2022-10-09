@@ -22,7 +22,7 @@ virtual_arm_joint_names=['arm_joint_1', 'arm_joint_2', 'arm_joint_3', 'arm_joint
 virtual_arm_home_point=(0, -0.7850, 1.57, 1.57, 0, 0)                               #home点
 actually_joint_home_point=[ 0, -89, -89, -44, 0, 2000]                              #home点和速度参数
 #小车服务器的IP地址
-server_ipaddress='192.168.100.144'
+server_ipaddress='192.168.100.153'
 server_port=9090
 cmd_cancel=0
 g_open=config["g_open"]
