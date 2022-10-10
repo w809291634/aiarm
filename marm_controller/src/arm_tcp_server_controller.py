@@ -12,7 +12,7 @@ this = sys.modules[__name__]
 #小车服务器的IP地址
 server_ipaddress='192.168.100.153'                      #IP地址根据实际情况设定
 server_port=9090
-this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
+this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 with open(config_path, "r") as f:
     config = yaml.load(f.read())
 

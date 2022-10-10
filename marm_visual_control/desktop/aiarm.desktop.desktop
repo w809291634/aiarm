@@ -1,7 +1,7 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=自动驾驶-取放货测试
+Name=智能分拣
 Comment=
 Exec=/home/zonesion/catkin_ws/src/marm_visual_control/bin/aiarm.sh
 Icon=

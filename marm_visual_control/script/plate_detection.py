@@ -20,7 +20,7 @@ from color_detection import Color_Rec
 import yaml
 import sys
 this = sys.modules[__name__]
-this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
+this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 with open(config_path, "r") as f:
     config = yaml.load(f.read())
 c_dir = os.path.split(os.path.realpath(__file__))[0]

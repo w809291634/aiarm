@@ -12,7 +12,7 @@ print("xcar server connect ok")
 while True:
     # addr = client.accept()
     # print '连接地址：', addr
-    msg = 'wanghao,wanghao,wanghao'  #strip默认取出字符串的头尾空格
+    msg = 'test,test,test'  #strip默认取出字符串的头尾空格
     client.send(msg)  #发送一条信息 python3 只接收btye流
     time.sleep(1)
 

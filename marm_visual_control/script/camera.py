@@ -13,7 +13,7 @@ from plate_detection import Plate_det
 from collections import OrderedDict
 import yaml
 this = sys.modules[__name__]
-this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
+this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 
 this.dir_f = os.path.abspath(os.path.dirname(__file__))
 #loc_plate 640*480像素下 定位板框 左上角 和方框像素宽度、高度
@@ -80,6 +80,7 @@ class AiCamera(object):
         
         if cam!=-1:
             self.cap = cv2.VideoCapture(cam)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             print("set cam number %d"%cam)
             self.__switch=False
             self.frame=np.array([])
@@ -126,11 +127,15 @@ class AiCamera(object):
     def __pollcam(self):
         while True:
             if self.__switch ==True:
+                clear_frame=0
                 while True:
                     success, frame = self.cap.read()
                     if not success:
                         time.sleep(1)
                         print("no camera detect,please check whether the camera is connected normally")
+                        continue
+                    if clear_frame<5:                       #清除opencv图像缓存
+                        clear_frame+=1
                         continue
                     img=copy.deepcopy(frame)
                     img=self.__undistort(img)

@@ -15,7 +15,7 @@ import math
 this = sys.modules[__name__]
 import sys   
 import signal
-from marm_visual_inspection.srv import GenerateSolutions
+from moveit_simple_grasps.srv import GenerateSolutions
 from marm_controller.srv import *
 #机械臂调试
 arm_debug=False #True False
@@ -24,7 +24,7 @@ import yaml
 import sys
 this = sys.modules[__name__]
 
-this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
+this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 with open(config_path, "r") as f:
     config = yaml.load(f.read())
 

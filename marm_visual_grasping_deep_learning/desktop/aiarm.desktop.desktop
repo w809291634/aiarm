@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=深度学习取放货
+Comment=
+Exec=/home/zonesion/catkin_ws/src/marm_visual_grasping_deep_learning/bin/aiarm.sh
+Icon=
+Terminal=true
+StartupNotify=false
+Name[zh_CN]=aiarm_by_deep_learning

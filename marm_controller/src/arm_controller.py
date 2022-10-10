@@ -12,7 +12,7 @@ import yaml
 import sys
 this = sys.modules[__name__]
 
-this.config_path="/home/zonesion/catkin_ws/src/marm_visual_control/config/config.yaml"
+this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
 with open(config_path, "r") as f:
     config = yaml.load(f.read())
 
