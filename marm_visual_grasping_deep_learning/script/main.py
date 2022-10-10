@@ -79,6 +79,7 @@ def aiarmAPP():
                 #前方黄色放料区取料
             go_warehouse(place_yellow_pre_pos,place_yellow_pos)
             aiarm.arm_goHome()
+            aiarm.close_win()
             rospy.sleep(0.1)
             aiarm.set_joint_value_target(place_Sorting_area)
             rospy.sleep(0.1)

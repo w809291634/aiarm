@@ -63,7 +63,7 @@ class AiCamera(object):
             self.open_wins.append(self.window_name)
         cvwin.imshow("camera",img)
 
-    def __close_win(self):
+    def close_win(self):
         if self.__win_is_open(self.window_name)==True:
             cvwin.destroyWindow(self.window_name)
             self.open_wins.remove(self.window_name)
@@ -123,10 +123,9 @@ class AiCamera(object):
                         else:
                             rect=self.list_add(i,rect)
                     rect=[int(x/len(__la_rect)) for x in rect]
-                    self.__close_win()
                     return True,rect,types
             self.__open_win(img)
-        self.__close_win()
+        self.close_win()
         return False,0,0
 
 if __name__ == '__main__':
