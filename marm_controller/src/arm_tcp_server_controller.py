@@ -108,6 +108,8 @@ if __name__=='__main__':
                                     rospy.loginfo("arm run success")
                                     break
                             if time.time()-st1>wt:               # 等待
+                                print("arm_1",point_tuple)
+                                print("arm_2",arm_joint[1:])
                                 rospy.logerr("arm run error!")
                                 break   
                         conn.send("arm_response")
