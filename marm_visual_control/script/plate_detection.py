@@ -63,9 +63,8 @@ class Plate_det(object):
         for i in self.open_wins:
             if i==name:
                 return True
-            else:
-                return False
         return False
+
 
     def open_win(self):
         if self.winmain_show==True and self.__win_is_open(self.window_name)==False:

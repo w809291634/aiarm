@@ -170,9 +170,8 @@ class AiCamera(object):
         for i in self.open_wins:
             if i==name:
                 return True
-            else:
-                return False
         return False
+
 
     def __open_win(self,img):
         if self.__win_is_open(self.window_name)==False:    

@@ -62,8 +62,6 @@ class Color_Rec(object):
         for i in self.open_wins:
             if i==name:
                 return True
-            else:
-                return False
         return False
 
     def open_win(self):
