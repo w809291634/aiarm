@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import os
 import sys
 import cvwin
@@ -10,19 +11,26 @@ import numpy as np
 import copy
 from collections import OrderedDict
 import yaml
-from obj_detection_rk3399 import detection
+import json
 
 this = sys.modules[__name__]
 this.config_path="/home/zonesion/catkin_ws/src/marm_controller/config/config.yaml"
-
 this.dir_f = os.path.abspath(os.path.dirname(__file__))
-
-with open(config_path, "r") as f:
+this.c_dir = os.path.split(os.path.realpath(__file__))[0]
+with open(this.config_path, "r") as f:
     config = yaml.load(f.read())
 
+MODELS=1    # 0:使用 tensors_flow pb模型文件 1:使用 yolov5_ncnn 模型
+
 class AiCamera(object):
-    def __init__(self, model_name, class_name):
-        self.objdetect=detection.ObjDetect(model_name,class_name)
+    def __init__(self):
+        if MODELS==0:
+            from obj_detection_rk3399 import detection
+            self.objdetect=detection.ObjDetect("pill_detection_20220426",['box1', 'box2', 'box3', 'box4'])
+        elif MODELS==1:
+            import woodenmedicinedet
+            self.objdetect=woodenmedicinedet.WoodenMedicineDet()  
+            self.objdetect.init(this.c_dir+'/models/wooden_medicine') 
         self.window_name='camera'
         self.open_wins=[]
 
@@ -53,8 +61,6 @@ class AiCamera(object):
         for i in self.open_wins:
             if i==name:
                 return True
-            else:
-                return False
         return False
 
     def __open_win(self,img):
@@ -98,10 +104,38 @@ class AiCamera(object):
             if clear_frame<5:                       #清除opencv图像缓存
                 clear_frame+=1
                 continue
-            frame=self.__undistort(frame)
-            img, rect, types, pp =self.objdetect.detect(frame)
+            # frame=self.__undistort(frame)
+            if MODELS==0: 
+                img, rect, types, pp =self.objdetect.detect(frame)
+                if rect:
+                    print(rect,types)
+                    print(type(types[0]))
+                    print(pp,type(pp[0]))
+            elif MODELS==1:
+                rect = []
+                types = []
+                pp = []
+                result=self.objdetect.detect(frame)
+                result=json.loads(result)
+                # 遍历所有结果并 兼容 MODELS=0格式
+                num=result["result"]["obj_num"]
+                for index in range(num):
+                    location=result["result"]["obj_list"][index]["location"]
+                    pos1=(int(location["left"]),int(location["top"]))
+                    pos2=(int(location["left"]+location["width"]),int(location["top"]+location["height"]))
+                    name=result["result"]["obj_list"][index]["name"].encode('utf-8')   #python2
+                    # print(name,type(name))
+                    score=result["result"]["obj_list"][index]["score"]
+                    str=name+' %0.2f'%score
+                    cv2.rectangle(frame,pos1,pos2,(0,0,255),thickness=2)
+                    cv2.putText(frame,str,(pos1[0],pos1[1]-5), cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),thickness=2)
+                    loc=(pos1[0],pos1[1],pos2[0],pos2[1])
+                    rect.append(loc)
+                    types.append(name)
+                    pp.append(score)
+                img=frame                               # 图像中包含所有结果
             if(rect):
-                # print(rect[0],types[0],pp[0])      #取第一个识别目标
+                # print(rect[0],types[0],pp[0])         # 取第一个识别目标
                 if(__la_rect==[]):
                     __la_rect = [rect[0]] 
                     __la_types = [types[0]] 
@@ -129,10 +163,9 @@ class AiCamera(object):
         return False,0,0
 
 if __name__ == '__main__':
-    obj_class_names = ['box1', 'box2', 'box3', 'box4']
-    aicamer=AiCamera("pill_detection_20220426",obj_class_names)
+    aicamer=AiCamera()
     while True:
         sta,rect,types=aicamer.pill_detect(20)
         print(sta,rect,types)
-        time.sleep(1)
+        time.sleep(3)
 

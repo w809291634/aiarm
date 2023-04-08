@@ -65,7 +65,6 @@ class Plate_det(object):
                 return True
         return False
 
-
     def open_win(self):
         if self.winmain_show==True and self.__win_is_open(self.window_name)==False:
             #Binary_Threshold

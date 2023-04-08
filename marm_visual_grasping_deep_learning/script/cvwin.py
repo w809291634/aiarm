@@ -47,13 +47,13 @@ def resizeWindow(name,x,y):
 this.st=time.time()
 def cvwin():
     while True:
-        for i in this.namedWindows.keys():
+        for i in list(this.namedWindows.keys()):
             if this.namedWindows[i]==True:
                 cv2.namedWindow(i)
                 # cv2.namedWindow(i,cv2.WINDOW_NORMAL)
                 this.namedWindows[i]=False
         
-        for m in this.createTrackbars.keys():   #win
+        for m in list(this.createTrackbars.keys()):   #win
             if this.namedWindows[m]==False:    #check win is open
                 for n in this.createTrackbars[m].keys(): #Trackbar
                     try :
@@ -74,7 +74,7 @@ def cvwin():
             except:
                 pass
             
-        for i in this.showwins.keys():
+        for i in list(this.showwins.keys()):
             win=this.showwins[i]
             if win["update"]==True:
                 cv2.imshow(i, win["img"])
@@ -92,7 +92,7 @@ def cvwin():
                 print("destroyWindow error! retry")
                 pass  
                 
-        for m in this.createTrackbars.keys():   #win
+        for m in list(this.createTrackbars.keys()):   #win
             try :
                 if cv2.getWindowProperty(m,cv2.WND_PROP_VISIBLE):   #检查窗口打开
                     for n in this.createTrackbars[m].keys():

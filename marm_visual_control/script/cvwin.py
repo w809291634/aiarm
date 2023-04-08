@@ -49,8 +49,8 @@ def cvwin():
     while True:
         for i in list(this.namedWindows.keys()):
             if this.namedWindows[i]==True:
-                # cv2.namedWindow(i)
-                cv2.namedWindow(i,cv2.WINDOW_NORMAL)
+                cv2.namedWindow(i)
+                # cv2.namedWindow(i,cv2.WINDOW_NORMAL)
                 this.namedWindows[i]=False
         
         for m in list(this.createTrackbars.keys()):   #win
@@ -68,7 +68,7 @@ def cvwin():
         if len(this.resizewins)>0:
             rswin=this.resizewins[0]
             try :
-                if cv2.getWindowProperty(rswin[0],cv2.WND_PROP_VISIBLE) and this.namedWindows[rswin[0]]==False:
+                if cv2.getWindowProperty(rswin[0],cv2.WND_PROP_VISIBLE):
                     del this.resizewins[0]
                     cv2.resizeWindow(rswin[0],rswin[1],rswin[2])
             except:

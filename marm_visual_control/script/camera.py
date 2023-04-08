@@ -172,7 +172,6 @@ class AiCamera(object):
                 return True
         return False
 
-
     def __open_win(self,img):
         if self.__win_is_open(self.window_name)==False:    
             #Canny_Threshold

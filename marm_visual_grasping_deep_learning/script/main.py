@@ -52,7 +52,7 @@ from camera import AiCamera
 class AiArm(Arm,AiCamera):
     def __init__(self,g_open):
         super(AiArm,self).__init__(g_open,xarm="xarm")          #定义为在arm（3399）端运行此程序。初始化Arm类,定义为"varm"是在虚拟机远程控制
-        super(Arm,self).__init__("pill_detection_20220426",['box1', 'box2', 'box3', 'box4'])#初始化AiCamera类
+        super(Arm,self).__init__()                              #初始化AiCamera类
        
 def aiarmAPP():
     aiarm=AiArm(g_open)                                         #初始化AIarm
