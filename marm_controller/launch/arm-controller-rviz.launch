@@ -35,7 +35,7 @@
   <!-- Given the published joint states, publish tf for the robot links -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
 
-  <include file="$(find mbot_navigation)/launch/serial-node.launch"/>  
+  <include file="$(find mbot)/launch/serial-node.launch"/>  
   <node name="arm_controller_node" pkg="marm_controller" type="arm_controller.py" output="screen"/>
 
   <!-- Run the main MoveIt! executable without trajectory execution (we do not have controllers configured by default) -->
