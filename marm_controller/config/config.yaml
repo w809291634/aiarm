@@ -34,7 +34,7 @@ err_times: 3            #长度错误次数
 g_open: 0               #机械臂打开时的舵机度数
 arm_query_time: 0.2     #机械臂查询关节位置周期
 arm_wait_para: 2.0      #机械臂运动超时时间系数
-arm_arrive_err: 10      #机械臂运动到达关节误差值
+arm_arrive_err: 15      #机械臂运动到达关节误差值
 grip_query_time: 0.2    #机械臂夹具查询关节位置周期
 grip_wait_time: 3.0     #机械臂夹具运动超时时间
 gripper_arrive_err: 50  #机械臂夹具运动到达关节误差值

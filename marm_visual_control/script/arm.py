@@ -39,6 +39,8 @@ def quit(signum, frame):
 this.arm_joint=[]
 this.arm_res=0
 class Arm(object):
+    # xarm参数：为varm时：由虚拟机控制3399，3399再控制机械臂和夹具
+    #           为xarm时：3399直接控制机械臂
     def __init__(self,g_open,xarm="varm",gripper_ty=True):
         self.arm = MoveGroupCommander("manipulator")
         self.xarm=xarm
